@@ -513,11 +513,13 @@
                         <span>2706 SE Loop 820<br>Fort Worth, TX 76140</span>
                     </div>
                 </div>
-                <form class="contact-form" id="contactForm">
+                <form class="contact-form" id="contactForm" action="https://api.web3forms.com/submit" method="POST">
                     <!-- Web3Forms Required Fields -->
                     <input type="hidden" name="access_key" value="394d9f05-9dad-455e-95fd-245c1a84d7dc">
                     <input type="hidden" name="subject" value="New Contact from Tanji Tax Consulting Website">
                     <input type="hidden" name="from_name" value="Tanji Tax Consulting">
+                    <input type="hidden" name="_template" value="table">
+                    <input type="hidden" name="_captcha" value="false">
                     
                     <div class="form-group">
                         <label for="name">Full Name *</label>
@@ -582,7 +584,7 @@
             }
         });
 
-        // Web3Forms with enhanced cross-origin support
+        // Enhanced Web3Forms with better GitHub Pages compatibility
         const contactForm = document.querySelector('.contact-form');
         
         if (contactForm) {
@@ -600,82 +602,113 @@
                     // Get form data
                     const formData = new FormData(this);
                     
-                    // Add current domain info
-                    formData.append('_subject', 'New Contact from ' + window.location.hostname);
-                    formData.append('_template', 'table');
-                    
-                    // Debug: Log form data
-                    console.log('Form data being sent:');
+                    // Convert FormData to URLSearchParams for better compatibility
+                    const params = new URLSearchParams();
                     for (let [key, value] of formData.entries()) {
-                        console.log(key, value);
+                        params.append(key, value);
                     }
                     
-                    // Send to Web3Forms with enhanced headers
+                    console.log('Submitting form data...');
+                    
+                    // Use fetch with proper headers for GitHub Pages
                     const response = await fetch('https://api.web3forms.com/submit', {
                         method: 'POST',
-                        body: formData,
                         headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
                             'Accept': 'application/json'
-                        }
+                        },
+                        body: params.toString()
                     });
                     
                     console.log('Response status:', response.status);
                     
-                    const result = await response.json();
-                    console.log('Response:', result);
-                    
-                    if (result.success) {
-                        // Show success message
-                        submitBtn.textContent = 'Message Sent Successfully!';
-                        submitBtn.style.background = 'linear-gradient(45deg, #10b981, #059669)';
+                    if (response.ok) {
+                        const result = await response.json();
+                        console.log('Response:', result);
                         
-                        // Reset form
-                        this.reset();
-                        
-                        // Create success notification
-                        const successDiv = document.createElement('div');
-                        successDiv.innerHTML = '<p style="color: #10b981; text-align: center; margin-top: 1rem; font-weight: 600;">✅ Your message has been sent successfully! We\'ll get back to you soon.</p>';
-                        this.appendChild(successDiv);
-                        
-                        // Reset button and remove success message after 5 seconds
-                        setTimeout(() => {
-                            submitBtn.textContent = originalValue;
-                            submitBtn.style.background = 'linear-gradient(45deg, #3b82f6, #1e40af)';
-                            submitBtn.disabled = false;
-                            if (successDiv.parentNode) {
-                                successDiv.remove();
-                            }
-                        }, 5000);
-                        
+                        if (result.success) {
+                            // Show success message
+                            submitBtn.textContent = 'Message Sent Successfully!';
+                            submitBtn.style.background = 'linear-gradient(45deg, #10b981, #059669)';
+                            
+                            // Reset form
+                            this.reset();
+                            
+                            // Create success notification
+                            const successDiv = document.createElement('div');
+                            successDiv.innerHTML = '<p style="color: #10b981; text-align: center; margin-top: 1rem; font-weight: 600;">✅ Your message has been sent successfully! We\'ll get back to you soon.</p>';
+                            this.appendChild(successDiv);
+                            
+                            // Reset button and remove success message after 5 seconds
+                            setTimeout(() => {
+                                submitBtn.textContent = originalValue;
+                                submitBtn.style.background = 'linear-gradient(45deg, #3b82f6, #1e40af)';
+                                submitBtn.disabled = false;
+                                if (successDiv.parentNode) {
+                                    successDiv.remove();
+                                }
+                            }, 5000);
+                        } else {
+                            throw new Error(result.message || 'Form submission failed');
+                        }
                     } else {
-                        throw new Error(result.message || 'Form submission failed');
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                     }
                     
                 } catch (error) {
                     console.error('Submission error:', error);
                     
-                    // Show error message
-                    submitBtn.textContent = 'Error - Please Try Again';
-                    submitBtn.style.background = 'linear-gradient(45deg, #ef4444, #dc2626)';
+                    // Fallback: try traditional form submission
+                    console.log('Trying fallback submission...');
                     
-                    // Create error notification with fallback contact info
-                    const errorDiv = document.createElement('div');
-                    errorDiv.innerHTML = '<p style="color: #ef4444; text-align: center; margin-top: 1rem; font-weight: 600;">❌ There was an error sending your message. Please contact us directly at issacbeau57@gmail.com or call (608) 957-7255.</p>';
-                    this.appendChild(errorDiv);
+                    // Show fallback message
+                    submitBtn.textContent = 'Redirecting...';
                     
-                    // Reset button and remove error message after 8 seconds
-                    setTimeout(() => {
-                        submitBtn.textContent = originalValue;
-                        submitBtn.style.background = 'linear-gradient(45deg, #3b82f6, #1e40af)';
-                        submitBtn.disabled = false;
-                        if (errorDiv.parentNode) {
-                            errorDiv.remove();
-                        }
-                    }, 8000);
+                    // Create a temporary form for fallback submission
+                    const fallbackForm = document.createElement('form');
+                    fallbackForm.action = 'https://api.web3forms.com/submit';
+                    fallbackForm.method = 'POST';
+                    fallbackForm.style.display = 'none';
+                    
+                    // Copy all form data
+                    const formData = new FormData(this);
+                    for (let [key, value] of formData.entries()) {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = key;
+                        input.value = value;
+                        fallbackForm.appendChild(input);
+                    }
+                    
+                    // Add redirect URL
+                    const redirectInput = document.createElement('input');
+                    redirectInput.type = 'hidden';
+                    redirectInput.name = '_redirect';
+                    redirectInput.value = window.location.href + '?success=true';
+                    fallbackForm.appendChild(redirectInput);
+                    
+                    document.body.appendChild(fallbackForm);
+                    fallbackForm.submit();
                 }
             });
-        } else {
-            console.error('Contact form not found');
+        }
+        
+        // Check for success parameter in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('success') === 'true') {
+            // Show success message
+            const successDiv = document.createElement('div');
+            successDiv.innerHTML = '<div style="position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 1rem 2rem; border-radius: 8px; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">✅ Your message has been sent successfully!</div>';
+            document.body.appendChild(successDiv);
+            
+            // Remove success message after 5 seconds
+            setTimeout(() => {
+                if (successDiv.parentNode) {
+                    successDiv.remove();
+                }
+                // Clean URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }, 5000);
         }
 
         // Add hover effects to service cards
