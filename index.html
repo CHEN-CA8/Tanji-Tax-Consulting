@@ -513,14 +513,7 @@
                         <span>2706 SE Loop 820<br>Fort Worth, TX 76140</span>
                     </div>
                 </div>
-                <form class="contact-form" id="contactForm" action="https://api.web3forms.com/submit" method="POST">
-                    <!-- Web3Forms Required Fields -->
-                    <input type="hidden" name="access_key" value="394d9f05-9dad-455e-95fd-245c1a84d7dc">
-                    <input type="hidden" name="subject" value="New Contact from Tanji Tax Consulting Website">
-                    <input type="hidden" name="from_name" value="Tanji Tax Consulting">
-                    <input type="hidden" name="_template" value="table">
-                    <input type="hidden" name="_captcha" value="false">
-                    
+                <form class="contact-form" id="contactForm">
                     <div class="form-group">
                         <label for="name">Full Name *</label>
                         <input type="text" id="name" name="name" placeholder="Enter your full name" required>
@@ -538,12 +531,21 @@
                         <textarea id="message" name="message" rows="5" placeholder="Tell us about your tax needs and how we can help you..." required></textarea>
                     </div>
                     
-                    <!-- Honeypot field to prevent spam -->
-                    <input type="checkbox" name="botcheck" style="display: none;">
-                    
                     <button type="submit" class="cta-button" style="width: 100%; border: none;">
                         Send Message
                     </button>
+                    
+                    <!-- Success message -->
+                    <div id="successMessage" style="margin-top: 1rem; padding: 1rem; background: #dcfce7; border-radius: 8px; color: #166534; display: none;">
+                        <p style="font-weight: 600; margin-bottom: 0.5rem;">✅ Message Sent Successfully!</p>
+                        <p style="font-size: 0.9rem;">Thank you for your inquiry. We'll get back to you within 24 hours.</p>
+                    </div>
+                    
+                    <!-- Error message -->
+                    <div id="errorMessage" style="margin-top: 1rem; padding: 1rem; background: #fecaca; border-radius: 8px; color: #dc2626; display: none;">
+                        <p style="font-weight: 600; margin-bottom: 0.5rem;">❌ Error Sending Message</p>
+                        <p style="font-size: 0.9rem;">Please try again or contact us directly at <strong>issacbeau57@gmail.com</strong> or <strong>(608) 957-7255</strong>.</p>
+                    </div>
                 </form>
             </div>
         </div>
@@ -584,7 +586,7 @@
             }
         });
 
-        // Enhanced Web3Forms with better GitHub Pages compatibility
+        // Contact form with Resend API
         const contactForm = document.querySelector('.contact-form');
         
         if (contactForm) {
@@ -593,6 +595,12 @@
                 
                 const submitBtn = this.querySelector('button[type="submit"]');
                 const originalValue = submitBtn.textContent;
+                const successMessage = document.getElementById('successMessage');
+                const errorMessage = document.getElementById('errorMessage');
+                
+                // Hide any previous messages
+                successMessage.style.display = 'none';
+                errorMessage.style.display = 'none';
                 
                 // Show loading state
                 submitBtn.textContent = 'Sending...';
@@ -600,116 +608,62 @@
                 
                 try {
                     // Get form data
-                    const formData = new FormData(this);
+                    const formData = {
+                        name: this.querySelector('#name').value,
+                        email: this.querySelector('#email').value,
+                        phone: this.querySelector('#phone').value,
+                        message: this.querySelector('#message').value
+                    };
                     
-                    // Convert FormData to URLSearchParams for better compatibility
-                    const params = new URLSearchParams();
-                    for (let [key, value] of formData.entries()) {
-                        params.append(key, value);
-                    }
+                    // Create email content
+                    const emailData = {
+                        from: 'exploreu.top', // You'll need to replace this with your domain
+                        to: 'issacbeau57@gmail.com',
+                        subject: `Tax Consultation Inquiry from ${formData.name}`,
+                        html: `
+                            <h2>New Tax Consultation Inquiry</h2>
+                            <p><strong>Name:</strong> ${formData.name}</p>
+                            <p><strong>Email:</strong> ${formData.email}</p>
+                            <p><strong>Phone:</strong> ${formData.phone || 'Not provided'}</p>
+                            <p><strong>Message:</strong></p>
+                            <p>${formData.message.replace(/\n/g, '<br>')}</p>
+                        `
+                    };
                     
-                    console.log('Submitting form data...');
-                    
-                    // Use fetch with proper headers for GitHub Pages
-                    const response = await fetch('https://api.web3forms.com/submit', {
+                    // Send email using Resend API
+                    const response = await fetch('https://api.resend.com/emails', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                            'Accept': 'application/json'
+                            'Authorization': 're_V3ShcyGj_KpoMseBgzb4eXbtuYFyyx9mB', // You'll need to replace this
+                            'Content-Type': 'application/json'
                         },
-                        body: params.toString()
+                        body: JSON.stringify(emailData)
                     });
                     
-                    console.log('Response status:', response.status);
-                    
                     if (response.ok) {
-                        const result = await response.json();
-                        console.log('Response:', result);
-                        
-                        if (result.success) {
-                            // Show success message
-                            submitBtn.textContent = 'Message Sent Successfully!';
-                            submitBtn.style.background = 'linear-gradient(45deg, #10b981, #059669)';
-                            
-                            // Reset form
-                            this.reset();
-                            
-                            // Create success notification
-                            const successDiv = document.createElement('div');
-                            successDiv.innerHTML = '<p style="color: #10b981; text-align: center; margin-top: 1rem; font-weight: 600;">✅ Your message has been sent successfully! We\'ll get back to you soon.</p>';
-                            this.appendChild(successDiv);
-                            
-                            // Reset button and remove success message after 5 seconds
-                            setTimeout(() => {
-                                submitBtn.textContent = originalValue;
-                                submitBtn.style.background = 'linear-gradient(45deg, #3b82f6, #1e40af)';
-                                submitBtn.disabled = false;
-                                if (successDiv.parentNode) {
-                                    successDiv.remove();
-                                }
-                            }, 5000);
-                        } else {
-                            throw new Error(result.message || 'Form submission failed');
-                        }
+                        // Success
+                        successMessage.style.display = 'block';
+                        this.reset();
+                        successMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                     } else {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        // Error
+                        errorMessage.style.display = 'block';
+                        errorMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                     }
-                    
                 } catch (error) {
-                    console.error('Submission error:', error);
-                    
-                    // Fallback: try traditional form submission
-                    console.log('Trying fallback submission...');
-                    
-                    // Show fallback message
-                    submitBtn.textContent = 'Redirecting...';
-                    
-                    // Create a temporary form for fallback submission
-                    const fallbackForm = document.createElement('form');
-                    fallbackForm.action = 'https://api.web3forms.com/submit';
-                    fallbackForm.method = 'POST';
-                    fallbackForm.style.display = 'none';
-                    
-                    // Copy all form data
-                    const formData = new FormData(this);
-                    for (let [key, value] of formData.entries()) {
-                        const input = document.createElement('input');
-                        input.type = 'hidden';
-                        input.name = key;
-                        input.value = value;
-                        fallbackForm.appendChild(input);
-                    }
-                    
-                    // Add redirect URL
-                    const redirectInput = document.createElement('input');
-                    redirectInput.type = 'hidden';
-                    redirectInput.name = '_redirect';
-                    redirectInput.value = window.location.href + '?success=true';
-                    fallbackForm.appendChild(redirectInput);
-                    
-                    document.body.appendChild(fallbackForm);
-                    fallbackForm.submit();
+                    // Network error
+                    errorMessage.style.display = 'block';
+                    errorMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }
+                
+                // Reset button
+                submitBtn.textContent = originalValue;
+                submitBtn.disabled = false;
             });
         }
         
-        // Check for success parameter in URL
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('success') === 'true') {
-            // Show success message
-            const successDiv = document.createElement('div');
-            successDiv.innerHTML = '<div style="position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 1rem 2rem; border-radius: 8px; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">✅ Your message has been sent successfully!</div>';
-            document.body.appendChild(successDiv);
-            
-            // Remove success message after 5 seconds
-            setTimeout(() => {
-                if (successDiv.parentNode) {
-                    successDiv.remove();
-                }
-                // Clean URL
-                window.history.replaceState({}, document.title, window.location.pathname);
-            }, 5000);
-        }
+        // Clean up unused code
+        // (No success parameter handling needed for mailto approach)
 
         // Add hover effects to service cards
         document.querySelectorAll('.service-card').forEach(card => {
